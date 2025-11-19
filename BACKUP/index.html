@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Krunker Clone - Cyber Arena</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00ffcc;
+            --secondary: #ff00ff;
+            --bg-dark: rgba(10, 10, 15, 0.85);
+            --text-glow: 0 0 10px rgba(0, 255, 204, 0.5);
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Roboto', sans-serif;
+            background: #111;
+            user-select: none;
+        }
+
+        /* UI Layer */
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Crosshair */
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 24px;
+            height: 24px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        #crosshair::before,
+        #crosshair::after {
+            content: '';
+            position: absolute;
+            background: var(--primary);
+            box-shadow: 0 0 5px var(--primary);
+        }
+
+        #crosshair::before {
+            top: 11px;
+            left: 0;
+            width: 24px;
+            height: 2px;
+        }
+
+        #crosshair::after {
+            top: 0;
+            left: 11px;
+            width: 2px;
+            height: 24px;
+        }
+
+        /* HUD Containers */
+        .hud-panel {
+            background: var(--bg-dark);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px;
+            color: white;
+            font-family: 'Orbitron', sans-serif;
+            text-shadow: var(--text-glow);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #hud-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0 20px 20px 20px;
+        }
+
+        /* Health & Ammo */
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .bar-container {
+            width: 200px;
+            height: 10px;
+            background: #333;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .bar-fill {
+            height: 100%;
+            transition: width 0.2s;
+        }
+
+        #hp-bar {
+            background: #ff3333;
+            width: 100%;
+        }
+
+        #ammo-bar {
+            background: var(--primary);
+            width: 100%;
+        }
+
+        /* Killfeed */
+        #feed {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: right;
+            color: white;
+            font-family: 'Roboto', sans-serif;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .feed-item {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 5px 10px;
+            border-radius: 4px;
+            animation: fadeOut 4s forwards;
+            border-right: 3px solid var(--secondary);
+        }
+
+        @keyframes fadeOut {
+            0% {
+                opacity: 1;
+            }
+
+            80% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0;
+            }
+        }
+
+        /* Reload Message */
+        #reload-msg {
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ff3333;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: bold;
+            display: none;
+            text-shadow: 0 0 10px red;
+        }
+
+        /* Login Screen */
+        #login {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, #2a2a35 0%, #000000 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: all;
+            color: white;
+            z-index: 10;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 64px;
+            color: var(--primary);
+            text-shadow: 0 0 20px var(--primary);
+            margin-bottom: 40px;
+        }
+
+        #joinBtn {
+            padding: 15px 40px;
+            font-size: 24px;
+            font-family: 'Orbitron', sans-serif;
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.2);
+        }
+
+        #joinBtn:hover {
+            background: var(--primary);
+            color: #000;
+            box-shadow: 0 0 30px var(--primary);
+        }
+
+        .nametag {
+            color: white;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: 'Roboto', sans-serif;
+            font-weight: bold;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="ui">
+        <div id="crosshair"></div>
+        <div id="feed"></div>
+        <div id="reload-msg">RELOADING...</div>
+
+        <div id="hud-bottom">
+            <div class="hud-panel">
+                <div class="stat-box">
+                    <div class="stat-label">HEALTH</div>
+                    <div class="stat-value" id="hp-val">100</div>
+                    <div class="bar-container">
+                        <div id="hp-bar" class="bar-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hud-panel" style="border-color: var(--primary);">
+                <div class="stat-box" style="align-items: flex-end;">
+                    <div class="stat-label">AMMO</div>
+                    <div class="stat-value" id="ammo-val">30 / 30</div>
+                    <div class="bar-container">
+                        <div id="ammo-bar" class="bar-fill"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="login">
+        <h1>CYBER ARENA</h1>
+        <button id="joinBtn">ENTER SIMULATION</button>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+
+    <script>
+        // --- Network Setup ---
+        const socket = io();
+        let myId = null;
+        let isConnected = false;
+        const remotePlayers = {};
+        const pickups = {};
+
+        // --- Game State ---
+        const state = {
+            hp: 100,
+            ammo: 30,
+            maxAmmo: 30,
+            score: 0,
+            isReloading: false
+        };
+
+        // --- Three.js Setup ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050510);
+        scene.fog = new THREE.FogExp2(0x050510, 0.015);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        const labelRenderer = new THREE.CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        document.body.appendChild(labelRenderer.domElement);
+
+        // --- Lighting ---
+        const ambient = new THREE.HemisphereLight(0x444444, 0x111111, 1);
+        scene.add(ambient);
+
+        const dirLight = new THREE.DirectionalLight(0x00ffcc, 0.8);
+        dirLight.position.set(50, 100, 50);
+        dirLight.castShadow = true;
+        dirLight.shadow.camera.top = 100;
+        dirLight.shadow.camera.bottom = -100;
+        dirLight.shadow.camera.left = -100;
+        dirLight.shadow.camera.right = 100;
+        scene.add(dirLight);
+
+        const pointLight = new THREE.PointLight(0xff00ff, 0.5, 50);
+        pointLight.position.set(0, 20, 0);
+        scene.add(pointLight);
+
+        // --- Materials & Textures ---
+        const createGridTexture = (color) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, 64, 64);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(0, 0, 64, 64);
+            const t = new THREE.CanvasTexture(canvas);
+            t.wrapS = THREE.RepeatWrapping;
+            t.wrapT = THREE.RepeatWrapping;
+            return t;
+        };
+
+        const matWall = new THREE.MeshStandardMaterial({
+            map: createGridTexture('#00ffcc'),
+            roughness: 0.2, metalness: 0.8
+        });
+        const matGround = new THREE.MeshStandardMaterial({
+            map: createGridTexture('#ff00ff'),
+            roughness: 0.1, metalness: 0.5
+        });
+
+        // --- Map Generation ---
+        const mapGroup = new THREE.Group();
+        scene.add(mapGroup);
+        const collidables = [];
+
+        // Floor
+        const floorGeo = new THREE.BoxGeometry(200, 1, 200);
+        // Scale texture
+        matGround.map.repeat.set(20, 20);
+        const floor = new THREE.Mesh(floorGeo, matGround);
+        floor.position.y = -0.5;
+        floor.receiveShadow = true;
+        mapGroup.add(floor);
+        collidables.push(floor);
+
+        // Walls
+        for (let i = 0; i < 40; i++) {
+            const h = 5 + Math.random() * 10;
+            const w = new THREE.Mesh(new THREE.BoxGeometry(5, h, 5), matWall);
+            w.position.set((Math.random() - 0.5) * 150, h / 2, (Math.random() - 0.5) * 150);
+            w.castShadow = true;
+            w.receiveShadow = true;
+            mapGroup.add(w);
+            collidables.push(w);
+        }
+
+        // --- Player Controller ---
+        const player = { vel: new THREE.Vector3(), onGround: false };
+        const pitchObj = new THREE.Object3D(); pitchObj.add(camera);
+        const yawObj = new THREE.Object3D(); yawObj.position.y = 2; yawObj.add(pitchObj);
+        scene.add(yawObj);
+
+        // Weapon
+        const gunGroup = new THREE.Group();
+        const gunGeo = new THREE.BoxGeometry(0.2, 0.2, 1);
+        const gunMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.4 });
+        const gun = new THREE.Mesh(gunGeo, gunMat);
+        gun.position.set(0.4, -0.3, -0.5);
+        gun.castShadow = true;
+
+        // Glow strip on gun
+        const gunGlow = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.8), new THREE.MeshBasicMaterial({ color: 0x00ffcc }));
+        gunGlow.position.set(0.4, -0.2, -0.5);
+
+        gunGroup.add(gun);
+        gunGroup.add(gunGlow);
+        pitchObj.add(gunGroup);
+
+        // Inputs
+        const keys = {};
+        document.addEventListener('keydown', e => {
+            keys[e.code] = true;
+            if (e.code === 'KeyR') reload();
+        });
+        document.addEventListener('keyup', e => keys[e.code] = false);
+        document.addEventListener('mousedown', shoot);
+
+        // --- Network Logic ---
+        socket.on('init', (data) => {
+            myId = data.id;
+            isConnected = true;
+            Object.keys(data.players).forEach(id => {
+                if (id !== myId) addRemotePlayer(id, data.players[id]);
+            });
+            data.pickups.forEach(p => spawnPickup(p));
+        });
+
+        socket.on('playerJoined', (data) => addRemotePlayer(data.id, data.data));
+
+        socket.on('playerMoved', (data) => {
+            const p = remotePlayers[data.id];
+            if (p) {
+                p.targetPos.set(data.x, data.y, data.z);
+                p.targetRot = data.ry;
+            }
+        });
+
+        socket.on('playerLeft', (id) => {
+            if (remotePlayers[id]) {
+                scene.remove(remotePlayers[id].mesh);
+                scene.remove(remotePlayers[id].label);
+                delete remotePlayers[id];
+            }
+        });
+
+        socket.on('playerShot', (data) => {
+            // Muzzle flash effect could go here
+        });
+
+        socket.on('tookDamage', (data) => {
+            state.hp -= data.amount;
+            updateHUD();
+            // Red flash
+            const flash = document.createElement('div');
+            flash.style.position = 'absolute';
+            flash.style.top = '0'; flash.style.left = '0';
+            flash.style.width = '100%'; flash.style.height = '100%';
+            flash.style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
+            flash.style.pointerEvents = 'none';
+            document.body.appendChild(flash);
+            setTimeout(() => flash.remove(), 100);
+        });
+
+        socket.on('playerRespawn', (data) => {
+            if (data.id === myId) {
+                state.hp = 100;
+                state.ammo = state.maxAmmo;
+                yawObj.position.set(data.x, 2, data.z);
+                updateHUD();
+            } else if (remotePlayers[data.id]) {
+                remotePlayers[data.id].mesh.position.set(data.x, data.y, data.z);
+            }
+        });
+
+        socket.on('killFeed', (data) => {
+            const el = document.createElement('div');
+            el.className = 'feed-item';
+            el.innerHTML = `<span style="color:var(--primary)">${data.killer}</span> <span style="color:#aaa">killed</span> <span style="color:#ff3333">${data.victim}</span>`;
+            document.getElementById('feed').appendChild(el);
+            setTimeout(() => el.remove(), 4000);
+        });
+
+        socket.on('updateScore', (data) => {
+            if (data.id === myId) {
+                state.score = data.score;
+                updateHUD();
+            }
+        });
+
+        socket.on('pickupCollected', (id) => {
+            if (pickups[id]) pickups[id].visible = false;
+        });
+        socket.on('pickupRespawn', (data) => {
+            if (pickups[data.id]) pickups[data.id].visible = true;
+        });
+
+        // --- Helper Functions ---
+        function addRemotePlayer(id, data) {
+            const group = new THREE.Group();
+
+            // Body
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({ color: data.color, roughness: 0.3 }));
+            body.castShadow = true;
+            group.add(body);
+
+            // Head
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), new THREE.MeshStandardMaterial({ color: 0xffcccc }));
+            head.position.y = 1.2;
+            group.add(head);
+
+            group.position.set(data.x, data.y, data.z);
+            scene.add(group);
+
+            // Nametag
+            const div = document.createElement('div');
+            div.className = 'nametag';
+            div.textContent = data.name;
+            const label = new THREE.CSS2DObject(div);
+            label.position.set(0, 2.5, 0);
+            group.add(label);
+
+            remotePlayers[id] = {
+                mesh: group,
+                targetPos: new THREE.Vector3(data.x, data.y, data.z),
+                targetRot: 0,
+                label: label
+            };
+        }
+
+        function spawnPickup(data) {
+            const isHealth = data.type === 'health';
+            const color = isHealth ? 0xff3333 : 0x00ffcc;
+            const geo = isHealth ? new THREE.BoxGeometry(0.6, 0.6, 0.6) : new THREE.OctahedronGeometry(0.4);
+
+            const mat = new THREE.MeshStandardMaterial({
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.5,
+                transparent: true,
+                opacity: 0.9
+            });
+
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(data.x, data.y, data.z);
+            scene.add(mesh);
+
+            // Add point light to pickup
+            const light = new THREE.PointLight(color, 1, 5);
+            mesh.add(light);
+
+            mesh.userData = { isPickup: true, id: data.id, type: data.type, startY: data.y };
+            pickups[data.id] = mesh;
+        }
+
+        function reload() {
+            if (state.ammo === state.maxAmmo || state.isReloading || !isConnected) return;
+            state.isReloading = true;
+            document.getElementById('reload-msg').style.display = 'block';
+
+            // Visual reload tilt
+            gunGroup.rotation.x = -0.5;
+
+            setTimeout(() => {
+                state.ammo = state.maxAmmo;
+                state.isReloading = false;
+                gunGroup.rotation.x = 0;
+                document.getElementById('reload-msg').style.display = 'none';
+                updateHUD();
+            }, 1500);
+        }
+
+        function shoot() {
+            if (state.ammo <= 0) {
+                reload();
+                return;
+            }
+            if (state.isReloading || !isConnected) return;
+
+            state.ammo--;
+            updateHUD();
+
+            // Recoil
+            gunGroup.position.z += 0.2;
+            gunGroup.rotation.x += 0.1;
+
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const hits = raycaster.intersectObjects(scene.children, true);
+
+            let hitId = null;
+            for (let hit of hits) {
+                let obj = hit.object;
+                while (obj.parent && obj.parent.type !== 'Scene') {
+                    const pid = Object.keys(remotePlayers).find(key => remotePlayers[key].mesh === obj.parent);
+                    if (pid) { hitId = pid; break; }
+                    obj = obj.parent;
+                }
+                if (hitId) break;
+                if (collidables.includes(hit.object)) break;
+            }
+            socket.emit('shoot', { hitId: hitId });
+        }
+
+        function updateHUD() {
+            document.getElementById('hp-val').innerText = Math.max(0, state.hp);
+            document.getElementById('hp-bar').style.width = `${Math.max(0, state.hp)}%`;
+
+            document.getElementById('ammo-val').innerText = `${state.ammo} / ${state.maxAmmo}`;
+            document.getElementById('ammo-bar').style.width = `${(state.ammo / state.maxAmmo) * 100}%`;
+        }
+
+        // --- Main Loop ---
+        document.getElementById('joinBtn').addEventListener('click', () => {
+            document.getElementById('login').style.display = 'none';
+            document.body.requestPointerLock();
+        });
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = Math.min(clock.getDelta(), 0.1);
+            const time = clock.getElapsedTime();
+
+            if (isConnected) {
+                // 1. Physics/Movement
+                player.vel.y -= 30 * delta;
+
+                const speed = 15;
+                const dir = new THREE.Vector3();
+
+                // FIXED WASD
+                if (keys['KeyW']) dir.z -= 1; // Forward
+                if (keys['KeyS']) dir.z += 1; // Backward
+                if (keys['KeyA']) dir.x -= 1; // Left
+                if (keys['KeyD']) dir.x += 1; // Right
+
+                if (keys['Space'] && player.onGround) player.vel.y = 12;
+
+                const yaw = yawObj.rotation.y;
+                const dx = Math.sin(yaw) * dir.z + Math.cos(yaw) * dir.x;
+                const dz = Math.cos(yaw) * dir.z - Math.sin(yaw) * dir.x;
+
+                player.vel.x = dx * speed;
+                player.vel.z = dz * speed;
+
+                yawObj.position.add(player.vel.clone().multiplyScalar(delta));
+
+                // Floor collision
+                if (yawObj.position.y < 2) {
+                    yawObj.position.y = 2;
+                    player.vel.y = 0;
+                    player.onGround = true;
+                } else {
+                    player.onGround = false;
+                }
+
+                // 2. Weapon Bobbing
+                if (dir.length() > 0 && player.onGround) {
+                    gunGroup.position.y = Math.sin(time * 10) * 0.02;
+                    gunGroup.position.x = Math.cos(time * 10) * 0.02;
+                } else {
+                    gunGroup.position.y = THREE.MathUtils.lerp(gunGroup.position.y, 0, 0.1);
+                    gunGroup.position.x = THREE.MathUtils.lerp(gunGroup.position.x, 0, 0.1);
+                }
+
+                // 3. Network Sync
+                socket.emit('move', {
+                    x: yawObj.position.x,
+                    y: yawObj.position.y,
+                    z: yawObj.position.z,
+                    ry: yawObj.rotation.y
+                });
+
+                // 4. Pickup Animation & Collision
+                Object.values(pickups).forEach(p => {
+                    if (p.visible) {
+                        // Float and rotate
+                        p.rotation.y += delta;
+                        p.position.y = p.userData.startY + Math.sin(time * 2) * 0.2;
+
+                        if (p.position.distanceTo(yawObj.position) < 2) {
+                            socket.emit('collectPickup', p.userData.id);
+                            if (p.userData.type === 'health') state.hp = Math.min(100, state.hp + 25);
+                            else state.ammo = state.maxAmmo;
+                            updateHUD();
+                        }
+                    }
+                });
+
+                // 5. Interpolate Remote Players
+                Object.values(remotePlayers).forEach(p => {
+                    p.mesh.position.lerp(p.targetPos, 0.2);
+                    p.mesh.rotation.y = p.targetRot;
+                });
+
+                // 6. Gun Recoil Recovery
+                gunGroup.position.z = THREE.MathUtils.lerp(gunGroup.position.z, 0, 0.1);
+                gunGroup.rotation.x = THREE.MathUtils.lerp(gunGroup.rotation.x, state.isReloading ? -0.5 : 0, 0.1);
+            }
+
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            if (document.pointerLockElement === document.body) {
+                yawObj.rotation.y -= e.movementX * 0.002;
+                pitchObj.rotation.x -= e.movementY * 0.002;
+                pitchObj.rotation.x = Math.max(-1.5, Math.min(1.5, pitchObj.rotation.x));
+            }
+        });
+
+        animate();
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+
+</html>
